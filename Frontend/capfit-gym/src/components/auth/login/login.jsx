@@ -3,7 +3,7 @@ import { Button, Form, Card } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./Login.css";
 
-const Login = ({ onLogin}) => {
+const Login = ({ onLogin }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     
@@ -15,11 +15,29 @@ const Login = ({ onLogin}) => {
             return;
         }
 
-        console.log("Login Exitoso con:", email);
+        fetch('http://localhost:5000/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Credenciales inválidas');
+            return res.json();
+        })
+        .then(data => {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('rol', data.rol);
+            localStorage.setItem('nombre', data.nombre);
 
-        if (onLogin) {
-            onLogin();
-        }
+            alert(`¡Bienvenido ${data.nombre} (${data.rol})!`);
+
+            if (onLogin) {
+                onLogin(data.rol);
+            }
+        })
+        .catch(err => {
+            alert("Error: " + err.message);
+        });
     };
 
     return (

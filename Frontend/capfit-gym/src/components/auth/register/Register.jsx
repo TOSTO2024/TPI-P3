@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Button, Form, Card } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import "../login/Login.css"
 
 const Register = ({ onRegister }) => {
-    const [email, setEmail] = useState("");
     const [username, setUsername] = useState("");
     const [lastName, setLastname] = useState("");
+    const [email, setEmail] = useState("");
     const [dni, setDni] = useState("");
     const [fecha, setFecha] = useState("");
     const [password, setPassword] = useState("");
@@ -13,16 +14,44 @@ const Register = ({ onRegister }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        if (!email || !username || !lastName || !dni || !fecha || !password) {
+        if (!username || !lastName || !email || !dni || !fecha || !password) {
             alert("Por favor, complete todos los campos");
             return;
         }
+    
+    const nuevoUsuario = {
+        nombre: `${username} ${lastName}`, 
+        email,
+        password,
+        dni,
+        fechaNacimiento: fecha
+    };
 
-        console.log("Se registró perfectamente:", username);
+    fetch('http://localhost:5000/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevoUsuario)
+        })
+        .then(res => {
+            if (!res.ok) {
+                return res.json().then(data => { throw new Error(data.mensaje || 'Error al registrarse'); });
+            }
+            return res.json();
+        })
+        .then(data => {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('rol', data.rol);
+            localStorage.setItem('nombre', data.nombre);
 
-        if (onRegister) {
-            onRegister();
-        }
+            alert(`¡Cuenta creada con éxito! Bienvenido ${data.nombre}`);
+
+            if (onRegister) {
+                onRegister(data.rol);
+            }
+        })
+        .catch(err => {
+            alert("Error: " + err.message);
+        });
     };
 
     return (
