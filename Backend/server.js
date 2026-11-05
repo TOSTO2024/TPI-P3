@@ -10,9 +10,9 @@ app.use(cors());
 app.use(express.json());
 
 let usuarios = [
-    { id: 1, email: "sysadmin@capfit.com", password: "123", rol: "sysadmin", nombre: "Dueño Supremo" },
-    { id: 2, email: "admin@capfit.com", password: "123", rol: "admin", nombre: "Administrador" },
-    { id: 3, email: "cliente@capfit.com", password: "123", rol: "cliente", nombre: "Juan Cliente" }
+    { id: 1, email: "sysadmin@capfit.com", password: "12345678", rol: "sysadmin", nombre: "Dueño Supremo" },
+    { id: 2, email: "admin@capfit.com", password: "12345678", rol: "admin", nombre: "Administrador" },
+    { id: 3, email: "cliente@capfit.com", password: "12345678", rol: "cliente", nombre: " Cliente promedio" }
 ];
 
 let productos = [

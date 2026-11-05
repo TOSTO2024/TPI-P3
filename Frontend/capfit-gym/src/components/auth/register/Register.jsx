@@ -18,6 +18,47 @@ const Register = ({ onRegister }) => {
             alert("Por favor, complete todos los campos");
             return;
         }
+        const soloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,30}$/;
+        if (!soloLetras.test(username)) {
+            alert("El nombre ingresado no es válido (solo letras, entre 3 y 30 caracteres).");
+            return;
+        }
+        if (!soloLetras.test(lastName)) {
+            alert("El apellido ingresado no es válido (solo letras, entre 3 y 30 caracteres).");
+            return;
+        }
+
+        const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!regexEmail.test(email)) {
+            alert("Por favor, ingrese un correo electrónico válido.");
+            return;
+        }
+
+        const regexDni = /^\d{7,8}$/;
+        if (!regexDni.test(dni)) {
+            alert("El DNI debe contener solo números (entre 7 y 8 dígitos).");
+            return;
+        }
+
+        const hoy = new Date();
+        const nacimiento = new Date(fecha);
+
+        if (nacimiento > hoy) {
+            alert("La fecha de nacimiento no puede ser futura.");
+            return;
+        }
+
+        const edad = hoy.getFullYear() - nacimiento.getFullYear() - 
+            (hoy.getMonth() < nacimiento.getMonth() || (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate()) ? 1 : 0);
+
+        if (edad < 5 || edad > 100) {
+            alert("Debes tener entre 5 y 100 años para registrarte.");
+            return;
+        }
+        if (password.length < 6) {
+            alert("La contraseña debe tener al menos 6 caracteres.");
+            return;
+        }
     
     const nuevoUsuario = {
         nombre: `${username} ${lastName}`, 
