@@ -1,15 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const ClasesFuncional = () => {
-    const emailUsuario = localStorage.getItem("email") || "invitado";
-
-    const [reservas, setReservas] = useState(() => {
-        return JSON.parse(localStorage.getItem(`reservas_${emailUsuario}`)) || [];
-    });
-
+    const token = localStorage.getItem("token");
+    const [reservasServidor, setReservasServidor] = useState([]);
     const [diaSeleccionado, setDiaSeleccionado] = useState("Lunes");
-
-    
+    const [mensajeFeedback, setMensajeFeedback] = useState(null); 
 
     const diasSemana = [
         { nombre: "Lunes", fecha: "7" },
@@ -28,27 +23,83 @@ const ClasesFuncional = () => {
         "20:00 - 21:00"
     ];
 
-    const manejarReserva = (horario) => {
-        const token = localStorage.getItem("token");
+    const cargarReservas = useCallback(() => {
+        if (!token) return;
+
+        fetch('http://localhost:5000/api/reservas', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log("Reservas cargadas del servidor:", data);
+            if (Array.isArray(data)) setReservasServidor(data);
+        })
+        .catch(err => console.error("Error cargando reservas:", err));
+    }, [token]);
+
+    useEffect(() => {
+        cargarReservas();
+    }, [cargarReservas]);
+
+    const manejarReservaToggle = (horario) => {
         if (!token) {
-            alert("Debes iniciar sesión para poder reservar una clase.");
+            setMensajeFeedback({
+                texto: "Debes iniciar sesión para poder reservar una clase.",
+                tipo: "danger"
+            });
             return;
         }
 
-        const claveReserva = `${diaSeleccionado} - ${horario}`;
-        let nuevasReservas;
+        const horarioCompleto = `${diaSeleccionado} - ${horario}`;
+        
+        console.log("Horario armándose en cliente:", horarioCompleto);
+        console.log("Reservas actuales en memoria:", reservasServidor);
 
-        if (reservas.includes(claveReserva)) {
-            nuevasReservas = reservas.filter(r => r !== claveReserva);
-            alert(`Has cancelado tu turno de Funcional para el día ${diaSeleccionado} (${horario}).`);
+        const reservaExistente = reservasServidor.find(r => r.horario === horarioCompleto);
+
+        if (reservaExistente) {
+            console.log("¡Encontró reserva para borrar con ID:", reservaExistente.id);
+            
+            setReservasServidor(prev => prev.filter(r => r.id !== reservaExistente.id));
+
+            fetch(`http://localhost:5000/api/reservas/${reservaExistente.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(res => res.json())
+            .then(() => {
+                setMensajeFeedback({
+                    texto: `Has cancelado tu turno de las ${horario} el día ${diaSeleccionado}.`,
+                    tipo: "warning"
+                });
+                cargarReservas();
+            });
+
         } else {
-            nuevasReservas = [...reservas, claveReserva];
-            alert(`¡Reserva exitosa para Funcional el día ${diaSeleccionado} de ${horario}!`);
-        }
+            console.log("No existe, procediendo a crear reserva...");
 
-        setReservas(nuevasReservas);
-        // Guardar en localStorage asociado al usuario actual
-        localStorage.setItem(`reservas_${emailUsuario}`, JSON.stringify(nuevasReservas));
+            fetch('http://localhost:5000/api/reservas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ 
+                    claseId: 1, 
+                    horario: horarioCompleto 
+                })
+            })
+            .then(res => res.json())
+            .then((data) => {
+                console.log("Respuesta del servidor al crear:", data);
+                setMensajeFeedback({
+                    texto: `¡Reserva exitosa para el turno de las ${horario} (${diaSeleccionado})!`,
+                    tipo: "success"
+                });
+                cargarReservas();
+            })
+            .catch(err => console.error("Error en POST:", err));
+        }
     };
 
     return (
@@ -56,14 +107,28 @@ const ClasesFuncional = () => {
             <h2 className="text-warning fw-bold mb-2">Seleccioná un día</h2>
             <p className="text-white-50 mb-4">Elegí la fecha para ver los horarios disponibles de Clases Funcionales.</p>
             
+            {mensajeFeedback && (
+                <div 
+                    className={`alert alert-${mensajeFeedback.tipo} alert-dismissible fade show mx-auto mb-4`} 
+                    role="alert" 
+                    style={{ maxWidth: "600px", backgroundColor: mensajeFeedback.tipo === "success" ? "#198754" : mensajeFeedback.tipo === "warning" ? "#ffc107" : "#dc3545", color: "#fff", border: "none" }}
+                >
+                    {mensajeFeedback.texto}
+                    <button type="button" className="btn-close btn-close-white" onClick={() => setMensajeFeedback(null)}></button>
+                </div>
+            )}
+
             <div className="d-flex justify-content-center gap-2 overflow-auto pb-4 mb-3">
                 {diasSemana.map((d) => {
                     const activo = diaSeleccionado === d.nombre;
                     return (
                         <div
                             key={d.nombre}
-                            onClick={() => setDiaSeleccionado(d.nombre)}
-                            className="p-3 rounded-4 shadow-sm transition-all"
+                            onClick={() => {
+                                setDiaSeleccionado(d.nombre);
+                                setMensajeFeedback(null); 
+                            }}
+                            className="p-3 rounded-4 shadow-sm"
                             style={{
                                 minWidth: "90px",
                                 cursor: "pointer",
@@ -74,15 +139,9 @@ const ClasesFuncional = () => {
                                 transition: "all 0.2s ease"
                             }}
                         >
-                            <div className="small text-uppercase fw-semibold" style={{ opacity: activo ? 0.9 : 0.6 }}>
-                                {d.nombre.substring(0, 3)}
-                            </div>
-                            <div className="fs-3 fw-bold my-1">
-                                {d.fecha}
-                            </div>
-                            <div className="small" style={{ opacity: activo ? 0.9 : 0.5 }}>
-                                nov
-                            </div>
+                            <div className="small text-uppercase fw-semibold" style={{ opacity: activo ? 0.9 : 0.6 }}>{d.nombre.substring(0, 3)}</div>
+                            <div className="fs-3 fw-bold my-1">{d.fecha}</div>
+                            <div className="small" style={{ opacity: activo ? 0.9 : 0.5 }}>nov</div>
                         </div>
                     );
                 })}
@@ -97,8 +156,8 @@ const ClasesFuncional = () => {
 
                 <div className="d-flex flex-column gap-3">
                     {horariosClases.map((horario) => {
-                        const claveReserva = `${diaSeleccionado} - ${horario}`;
-                        const estaReservado = reservas.includes(claveReserva);
+                        const horarioCompleto = `${diaSeleccionado} - ${horario}`;
+                        const estaReservado = Array.isArray(reservasServidor) && reservasServidor.some(r => r && r.horario === horarioCompleto);
 
                         return (
                             <div 
@@ -112,7 +171,7 @@ const ClasesFuncional = () => {
                                 </div>
                                 <button
                                     className={`btn fw-bold px-4 py-2 ${estaReservado ? "btn-success" : "btn-warning text-dark"}`}
-                                    onClick={() => manejarReserva(horario)}
+                                    onClick={() => manejarReservaToggle(horario)}
                                 >
                                     {estaReservado ? "Reservado ✓" : "Reservar Turno"}
                                 </button>
@@ -125,4 +184,4 @@ const ClasesFuncional = () => {
     );
 };
 
-export default ClasesFuncional;
+export default ClasesFuncional

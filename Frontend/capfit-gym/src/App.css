@@ -214,6 +214,5 @@
     color: #0d0d0d !important; 
 }
 .btn-mapa-hover:hover {
-    background-color: #dc3545 !important; /* Rojo Bootstrap */
-    color: #fff !important;
+    background-color: #dc3545 !important; 
 }
