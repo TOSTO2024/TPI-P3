@@ -6,7 +6,7 @@ import Catalogo from "./components/Principal/Catalogo";
 import Changuito from "./components/Principal/Changuito";
 import AdminPanel from "./components/admin/AdminPanel";
 import ClasesFuncional from "./components/Principal/ClasesFuncional";
-import MembresiaYPago from "./components/priv/MembresiaPago"; 
+import MembresiaPago from "./components/priv/MembresiaPago";
 import { Alert, Modal, Button } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
@@ -32,11 +32,15 @@ function App() {
             }
             return [...prevCarrito, { ...producto, cantidad: 1 }];
         });
-
+        
         setMensajeFeedback({
             texto: `¡Agregaste "${producto.nombre}" al changuito!`,
             variante: "success"
         });
+    };
+
+    const vaciarChanguito = () => {
+        setCarrito([]); 
     };
 
     const manejarClickCarrito = () => {
@@ -136,9 +140,9 @@ function App() {
                         }}
                         onClick={() => setMostrarModalUbicacion(true)}
                         title="Ubicación"
-                    >        
+                    >      
                         <svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg">
-                            <g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" transform="translate(4 2)">
+                            <g fill="none" fillRule="evenodd" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" transform="translate(4 2)">
                                 <path d="m6.5 16.5407715.6311176-.7118691c.71585099-.8191184 1.36011688-1.5983525 1.93279767-2.3377022l.4733382-.6239608c1.97516433-2.6615039 2.96274653-4.77276704 2.96274653-6.33378943 0-3.33218241-2.6862915-6.03344997-6-6.03344997s-6 2.70126756-6 6.03344997c0 1.56102239.98758218 3.67228553 2.96274653 6.33378943l.4733382.6239608c.73630387.9505925 1.5909423 1.9671163 2.56391527 3.0495713z"/>
                                 <circle cx="6.5" cy="6.5" r="2.5"/>
                             </g>
@@ -149,23 +153,31 @@ function App() {
                         className="btn btn-custom-outline fw-semibold px-3 py-2 me-3 text-warning border-warning"
                         onClick={() => cambiarVista("clases")}
                     >
-                        <svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd" transform="translate(2 2)"><path d="m2.5.5h12c1.1045695 0 2 .8954305 2 2v12c0 1.1045695-.8954305 2-2 2h-12c-1.1045695 0-2-.8954305-2-2v-12c0-1.1045695.8954305-2 2-2z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="m.5 4.5h16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><g fill="currentColor"><circle cx="8.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/><circle cx="12.5" cy="8.5" r="1"/><circle cx="8.5" cy="12.5" r="1"/><circle cx="4.5" cy="12.5" r="1"/><circle cx="12.5" cy="12.5" r="1"/></g></g></svg>
+                        <svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fillRule="evenodd" transform="translate(2 2)"><path d="m2.5.5h12c1.1045695 0 2 .8954305 2 2v12c0 1.1045695-.8954305 2-2 2h-12c-1.1045695 0-2-.8954305-2-2v-12c0-1.1045695.8954305-2 2-2z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/><path d="m.5 4.5h16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/><g fill="currentColor"><circle cx="8.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/><circle cx="12.5" cy="8.5" r="1"/><circle cx="8.5" cy="12.5" r="1"/><circle cx="4.5" cy="12.5" r="1"/><circle cx="12.5" cy="12.5" r="1"/></g></g></svg>
                     </button>
 
-                    {token && (
+                    {token && rol !== "admin" && rol !== "sysadmin" && (
                         <button
-                            className="btn btn-warning fw-semibold px-3 py-2 me-3 text-dark"
+                            className="btn btn-custom-outline fw-semibold px-3 py-2 me-3 text-warning border-warning"
+                            style={{ borderRadius: "12px", backgroundColor: "#1a1a1a" }}
                             onClick={() => cambiarVista("membresia")}
                         >
-                            Pagar Membresía
+                            Membresía
                         </button>
                     )}
 
                     <button
-                        className="btn btn-cart-hover d-flex align-items-center justify-content-center p-2 me-4 position-relative"
+                        className="btn d-flex align-items-center justify-content-center p-2 me-4 position-relative btn-changuito"
                         onClick={manejarClickCarrito}
                         title="Mi Changuito"
-                        style={{ width: "42px", height: "42px", borderRadius: "50%", border: "none", backgroundColor: "#ffb300" }}
+                        style={{ 
+                            width: "42px", 
+                            height: "42px", 
+                            borderRadius: "50%", 
+                            border: "2px solid #ffb300", 
+                            backgroundColor: "#ffb300",
+                            transition: "all 0.2s ease"
+                        }}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-cart3 text-dark" viewBox="0 0 16 16">
                             <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .49.598l-1 5a.5.5 0 0 1-.465.401l-9.397.472L4.415 11H13a.5.5 0 0 1 0 1H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l.84 4.479 9.144-.459L13.89 4H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
@@ -203,6 +215,7 @@ function App() {
                                 carrito={carrito}
                                 onActualizarCantidad={actualizarCantidad}
                                 onEliminar={eliminarDelCarrito}
+                                onVaciarCarrito={vaciarChanguito}
                             />
                         </div>
                     )}
@@ -309,18 +322,19 @@ function App() {
                     </div>
                 )}
 
-                {principal === "membresia" && (
+                {principal === "membresia" && rol === "cliente" && (
                     <div className="container">
-                        <MembresiaYPago />
+                        <MembresiaPago />
                     </div>
                 )}
 
                 {principal === "changuito" && (
                     <div className="container">
-                        <Changuito
+                        <Changuito 
                             carrito={carrito}
                             onActualizarCantidad={actualizarCantidad}
                             onEliminar={eliminarDelCarrito}
+                            onVaciarCarrito={vaciarChanguito}
                         />
                     </div>
                 )}

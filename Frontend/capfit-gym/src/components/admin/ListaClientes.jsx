@@ -1,108 +1,115 @@
 import { useState, useEffect, useCallback } from "react";
-import { Table, Alert, Form } from "react-bootstrap";
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ListaClientes = () => {
-    const [clientes, setClientes] = useState([]);
-    const [feedback, setFeedback] = useState(null);
+    const [usuarios, setUsuarios] = useState([]);
     const token = localStorage.getItem("token");
-    
-    const rolActual = localStorage.getItem("rol"); 
+    const rolActual = localStorage.getItem("rol");
 
-    const cargarClientes = useCallback(() => {
+    const cargarUsuarios = useCallback(() => {
         fetch('http://localhost:5000/api/usuarios', {
             headers: { 'Authorization': `Bearer ${token}` }
         })
-        .then(res => {
-            if (!res.ok) throw new Error("No se pudieron cargar los clientes.");
-            return res.json();
+        .then(res => res.json())
+        .then(data => {
+            if (Array.isArray(data)) {
+                setUsuarios(data);
+            }
         })
-        .then(data => setClientes(data))
-        .catch(() => {
-            setClientes([
-                { id: 1, nombre: "Dueño Supremo", email: "sysadmin@capfit.com", rol: "sysadmin", dni: "11111111" },
-                { id: 2, nombre: "Administrador", email: "admin@capfit.com", rol: "admin", dni: "22222222" },
-                { id: 3, nombre: "Cliente promedio", email: "cliente@capfit.com", rol: "cliente", dni: "33333333" }
-            ]);
-        });
+        .catch(err => console.error("Error al obtener clientes:", err));
     }, [token]);
 
     useEffect(() => {
-        cargarClientes();
-    }, [cargarClientes]);
+        cargarUsuarios();
+    }, [cargarUsuarios]);
 
-    const cambiarRolUsuario = (id, nuevoRol) => {
-        fetch(`http://localhost:5000/api/usuarios/${id}/rol`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ rol: nuevoRol })
-        })
-        .then(res => {
-            if (!res.ok) throw new Error("No se pudo actualizar el rol");
-            return res.json();
-        })
-        .then(() => {
-            setFeedback({ texto: "¡Rol actualizado correctamente en la base de datos!", variante: "success" });
-            cargarClientes();
-        })
-        .catch(err => {
-            setFeedback({ texto: err.message, variante: "danger" });
-        });
+    const cambiarRol = async (idUsuario, nuevoRol) => {
+        try {
+            const res = await fetch(`http://localhost:5000/api/usuarios/${idUsuario}/rol`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ rol: nuevoRol })
+            });
+
+            if (res.ok) {
+                cargarUsuarios(); 
+            } else {
+                const errorData = await res.json();
+                alert(errorData.mensaje || "Error al actualizar el rol.");
+            }
+        } catch (error) {
+            console.error("Error en la petición de cambio de rol:", error);
+        }
+    };
+
+    const calcularTiempoRestante = (fechaExpiracion) => {
+        if (!fechaExpiracion) return <span className="text-muted">Sin membresía</span>;
+
+        const diferencia = new Date(fechaExpiracion).getTime() - new Date().getTime();
+
+        if (diferencia <= 0) {
+            return <span className="text-danger small">Expirada ❌</span>;
+        }
+
+        const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+        const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+
+        return (
+            <span className="text-warning small fw-bold">
+                ⏱️ {dias}d {horas}h {minutos}m
+            </span>
+        );
     };
 
     return (
-        <div className="text-white">
-            <h3 className="text-warning mb-4">Gestión de Clientes y Roles</h3>
-
-            {feedback && (
-                <Alert variant={feedback.variante} dismissible onClose={() => setFeedback(null)}>
-                    {feedback.texto}
-                </Alert>
-            )}
-
-            <Table striped bordered hover variant="dark" responsive className="align-middle text-center">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre y Apellido</th>
-                        <th>Email</th>
-                        <th>DNI</th>
-                        <th>Rol del Usuario</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {clientes.map(c => (
-                        <tr key={c.id}>
-                            <td>{c.id}</td>
-                            <td className="text-start">{c.nombre}</td>
-                            <td>{c.email}</td>
-                            <td>{c.dni || "No especificado"}</td>
-                            <td>
-                                {rolActual === "sysadmin" ? (
-                                    <Form.Select
-                                        size="sm"
-                                        value={c.rol}
-                                        onChange={(e) => cambiarRolUsuario(c.id, e.target.value)}
-                                        className="bg-dark text-white border-warning fw-semibold text-center"
-                                        style={{ maxWidth: "160px", margin: "0 auto" }}
-                                    >
-                                        <option value="cliente">cliente</option>
-                                        <option value="admin">admin</option>
-                                        <option value="sysadmin">sysadmin</option>
-                                    </Form.Select>
-                                ) : (
-                                    <span className={`badge ${c.rol === 'sysadmin' ? 'bg-danger' : c.rol === 'admin' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
-                                        {c.rol}
-                                    </span>
-                                )}
-                            </td>
+        <div className="container py-4 text-white">
+            <h2 className="text-warning fw-bold text-center mb-4">Gestión de Clientes y Roles</h2>
+            
+            <div className="table-responsive">
+                <table className="table table-dark table-striped align-middle" style={{ border: "1px solid #ffb300" }}>
+                    <thead>
+                        <tr className="text-warning">
+                            <th>ID</th>
+                            <th>Nombre y Apellido</th>
+                            <th>Email</th>
+                            <th>DNI</th>
+                            <th>Tiempo Restante</th>
+                            <th>Rol del Usuario</th>
                         </tr>
-                    ))}
-                </tbody>
-            </Table>
+                    </thead>
+                    <tbody>
+                        {usuarios.map(u => (
+                            <tr key={u.id}>
+                                <td>{u.id}</td>
+                                <td>{u.nombre}</td>
+                                <td>{u.email}</td>
+                                <td>{u.dni || "No especificado"}</td>
+                                <td>{calcularTiempoRestante(u.membresia_expiracion)}</td>
+                                <td>
+                                    {rolActual === 'sysadmin' ? (
+                                        <select 
+                                            value={u.rol} 
+                                            onChange={(e) => cambiarRol(u.id, e.target.value)}
+                                            className="form-select form-select-sm bg-dark text-warning border-warning fw-bold"
+                                        >
+                                            <option value="cliente">cliente</option>
+                                            <option value="admin">admin</option>
+                                            <option value="sysadmin">sysadmin</option>
+                                        </select>
+                                    ) : (
+                                        <span className="badge bg-secondary text-dark px-3 py-2 fw-bold" style={{ backgroundColor: "#ffb300" }}>
+                                            {u.rol}
+                                        </span>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

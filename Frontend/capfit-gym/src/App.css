@@ -216,3 +216,10 @@
 .btn-mapa-hover:hover {
     background-color: #dc3545 !important; 
 }
+.btn-changuito:hover {
+    background-color: #1a1a1a !important;
+}
+
+.btn-changuito:hover svg {
+    color: #ffb300 !important;
+}

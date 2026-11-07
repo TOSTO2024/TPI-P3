@@ -32,7 +32,8 @@ db.serialize(() => {
             rol TEXT NOT NULL,
             nombre TEXT NOT NULL,
             dni TEXT,
-            fechaNacimiento TEXT
+            fechaNacimiento TEXT,
+            membresia_expiracion TEXT
         )
     `, (err) => {
         if (!err) {
@@ -207,7 +208,7 @@ app.post('/api/register', (req, res) => {
 });
 
 app.get('/api/usuarios', verificarToken, verificarAdmin, (req, res) => {
-    db.all(`SELECT id, email, rol, nombre, dni, fechaNacimiento FROM usuarios`, [], (err, usuarios) => {
+    db.all(`SELECT id, email, rol, nombre, dni, fechaNacimiento, membresia_expiracion FROM usuarios`, [], (err, usuarios) => {
         if (err) return res.status(500).json({ mensaje: 'Error al obtener usuarios.' });
         res.json(usuarios);
     });
@@ -418,6 +419,58 @@ app.post('/api/tickets', verificarToken, (req, res) => {
         if (err) return res.status(500).json({ mensaje: 'Error al generar el ticket.' });
         res.status(201).json({ mensaje: 'Ticket generado', codigo_ticket: codigoTicket });
     });
+});
+
+app.post('/api/usuarios/membresia', verificarToken, (req, res) => {
+    const usuarioId = req.usuarioId; 
+    const fechaExpiracion = new Date(new Date().getTime() + (30 * 24 * 60 * 60 * 1000)).toISOString();
+
+    db.run(
+        `UPDATE usuarios SET membresia_expiracion = ? WHERE id = ?`,
+        [fechaExpiracion, usuarioId],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ mensaje: "Error al actualizar la membresía en la base de datos." });
+            }
+            res.json({ mensaje: "Membresía activada con éxito", membresia_expiracion: fechaExpiracion });
+        }
+    );
+});
+
+app.get('/api/usuarios/perfil', verificarToken, (req, res) => {
+    const usuarioId = req.usuarioId;
+    db.get(`SELECT id, nombre, email, rol, membresia_expiracion FROM usuarios WHERE id = ?`, [usuarioId], (err, row) => {
+        if (err || !row) {
+            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+        }
+        res.json(row);
+    });
+});
+
+app.post('/api/productos/comprar', verificarToken, (req, res) => {
+    const { items } = req.body; 
+    
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ mensaje: 'No hay productos en la compra.' });
+    }
+
+    const stmt = db.prepare(`UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?`);
+    
+    let errorOcurrido = false;
+    db.serialize(() => {
+        items.forEach(item => {
+            stmt.run(item.cantidad, item.id, item.cantidad, (err) => {
+                if (err) errorOcurrido = true;
+            });
+        });
+        stmt.finalize();
+    });
+
+    if (errorOcurrido) {
+        return res.status(500).json({ mensaje: 'Error al actualizar el stock o stock insuficiente.' });
+    }
+
+    res.json({ mensaje: 'Compra procesada con éxito y stock actualizado.' });
 });
 
 app.listen(PORT, () => {
